@@ -1,0 +1,38 @@
+name: Fetch Nifty 15-min Data
+
+on:
+  schedule:
+    # NSE market hours: 09:15–15:30 IST = 03:45–10:00 UTC, Mon–Fri.
+    # GitHub Actions cron only supports whole-minute steps, so we
+    # run every 15 min across the full UTC window that covers this.
+    - cron: "*/15 3-10 * * 1-5"
+  workflow_dispatch: {}   # allows manual trigger from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install yfinance pandas
+
+      - name: Run fetch script
+        run: python fetch_nifty.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/nifty_15min.csv
+          git diff --quiet --cached || git commit -m "Auto-update Nifty 15-min data [skip ci]"
+          git push
